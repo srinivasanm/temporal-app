@@ -7,11 +7,17 @@
  */
 
 plugins {
+    id("com.github.johnrengelman.shadow") version "7.1.2"
     id 'java'
+    id 'application'
 }
 
 repositories {
     mavenCentral()
+}
+
+application {
+    mainClass.set("enrichment.worker.EnrichActivityWorker")
 }
 
 dependencies {
@@ -19,11 +25,69 @@ dependencies {
     implementation group: 'io.temporal', name: 'temporal-sdk', version: '1.11.0'
     implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.11'
+    implementation 'org.mongodb:mongo-java-driver:3.12.11'
+    //implementation 'org.mongodb:mongodb-driver-legacy:4.2.3'
+    //implementation 'org.mongodb:bson:4.2.3'
+    implementation 'org.apache.commons:commons-jexl3:3.0'
 
     // Use JUnit test framework
     testImplementation group: 'io.temporal', name: 'temporal-testing', version: '1.11.0'
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.5.1'
+}
+
+shadowJar {
+    zip64 true
+}
+
+task buildEnrichWorker(type:Jar, dependsOn:shadowJar){
+    archiveBaseName='enrich-worker'
+    manifest {
+        attributes('Main-Class': 'enrichment.worker.EnrichActivityWorker')
+    }
+    from zipTree(shadowJar.archivePath)
+
+}
+
+task buildEnrichmentSubmissionWorker(type:Jar, dependsOn:shadowJar){
+    archiveBaseName='enrich-workflow-worker'
+    manifest {
+        attributes('Main-Class': 'enrichment.worker.EnrichmentSubmissionWorkflowWorker')
+    }
+    from zipTree(shadowJar.archivePath)
+
+}
+
+task buildEnrichmentRequestInitiater(type:Jar, dependsOn:shadowJar){
+    archiveBaseName='enrich-initiater'
+    manifest {
+        attributes('Main-Class': 'enrichment.InitiateEnrichment')
+    }
+    from zipTree(shadowJar.archivePath)
+
+}
+
+task runJexlExample(type: JavaExec){
+    main = "others.JexlExample"
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task initiateEnrichment(type: JavaExec){
+    main = "enrichment.InitiateEnrichment"
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task startEnrichmentSubmissionWorker(type: JavaExec){
+    main = "enrichment.worker.EnrichmentSubmissionWorkflowWorker"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task startEnrichChunkWorker(type: JavaExec){
+    main = "enrichment.worker.EnrichChunkWorkflowWorker"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task startEnrichWorker(type: JavaExec){
+    main = "enrichment.worker.EnrichActivityWorker"
+    classpath = sourceSets.main.runtimeClasspath
 }
 
 task initiateTransfer(type: JavaExec) {
@@ -35,3 +99,5 @@ task startWorker(type: JavaExec) {
     main = 'moneytransferapp.MoneyTransferWorker'
     classpath = sourceSets.main.runtimeClasspath
 }
+
+defaultTasks 'build', 'shadowJar'

@@ -1,0 +1,8 @@
+FROM openjdk:8-jre-alpine3.9
+
+WORKDIR /usr/app/temporal
+
+COPY build/libs/enrichment-temporal-all.jar  enrichment-temporal-all.jar
+
+ENTRYPOINT ["java","-cp",".","-jar","enrichment-temporal-all.jar"]
+
